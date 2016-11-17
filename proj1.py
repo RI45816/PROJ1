@@ -16,8 +16,8 @@
 
 # The user's menu options
 
-LOAD_GAME = "y"
-NEW_GAME = "n"
+YES = "y"
+NO= "n"
 MINIMUM_ROWS = 5
 MINIMUM_COLUMNS = 5
 BLANK_SPACE = "_"
@@ -76,11 +76,11 @@ def getBoard():
     
     # Ask user whether or not they want to load a game
     load = ""
-    while not load in [LOAD_GAME,NEW_GAME]:
-        load = input("Would you like to load a game (%s/%s)? " % (LOAD_GAME,NEW_GAME))
+    while not load in [YES,NO]:
+        load = input("Would you like to load a game (%s/%s)? " % (YES,NO))
     
     # return a new game or load the new game based on user''s request
-    return loadBoard() if load == LOAD_GAME else newBoard()
+    return loadBoard() if load == YES else newBoard()
     
 
 #   Board() take the game board array and parses it
@@ -101,7 +101,7 @@ def parseBoard(board,delim=""):
 def displayBoard(board):
     
     # return the user friendly game board, with separator space
-    return "\n" + parseBoard(board," ")
+    return parseBoard(board," ")
 
 
 
@@ -126,7 +126,7 @@ def takeTurn(turn, board):
         elif action in [str(i+1) for i in range(y)]:
             update = updateBoard(int(action)-1, board, turn)
             if update:
-                return update
+                return [checkWinner(board,int(action)-1,turn),update]
         
 
 
@@ -171,26 +171,89 @@ def updateBoard(col,board,turn):
     
     # return the updated game board
     return board
+
     
 
 
+
+#    checkWinner() checks to if a player has won yet
+#   Input: board, 2D array, gameboard
+#   Output: boolean that conveys whether or not somebody has won
+def checkWinner(board,col,turn):
+    
+    # current column
+    column = [board[i][col] for i in range(len(board))]
+    
+    # current row number
+    rowNumber = column.index(PLAYER_TOKENS[turn-1])
+    
+    # current row
+    row = board[rowNumber]
+    
+    
+    
+    # regular diagonal
+#    diagonal = [board[(rowNumber + i) % len(board)][(col+i) % len(board[0])] for i in range(len(board))]
+    diagonal = {((rowNumber + i) % len(board),(col+i) % len(board[0])):board[(rowNumber + i) % len(board)][(col+i) % len(board[0])] for i in range(len(board))}
+    
+    
+    # Counter diaognal = 
+#    counterDiagonal = [board[(rowNumber + i) % len(board)][(col-i) % len(board[0])] for i in range(len(board))]
+    counterDiagonal = {((rowNumber + i) % len(board),(col-i) % len(board[0])):board[(rowNumber + i) % len(board)][(col-i) % len(board[0])] for i in range(len(board))}
+    
+    
+    # Match the row, column and diagonals against the 4 consectuive PLAYER_TOKENs, which signifies a win
+    connectFour = (PLAYER_TOKENS[turn-1] *4)
+
+#    print(diagonal,diagonal2)
+#    print(counterDiagonal,[diagonal3[i] for i in sorted(diagonal3)])
+    # if there is even one match, the game is over
+    for i in ["".join(column),"".join(row),"".join([diagonal[i] for i in sorted(diagonal)]),"".join([counterDiagonal[i] for i in sorted(counterDiagonal)])]:
+        if connectFour in i:
+            return True
+    return False
+
 def main():
+    
+    # Whether or not the user wants to quit
+    play = YES
     
     # Print welcome message
     print("Welcome to Connect Four\nThis game is for two players")
     
-    # load or create boarzd
+    # Retrieve board
     board = getBoard()
-    turn = int(board.pop()[0])
     
-    # display the board
-    print(displayBoard(board))
-    
-    # continously take their turns
-    while True:
-        board = takeTurn(turn, board)
+    # While the user has not opted to quit
+    while play != NO:
+        # load or create boarzd
+        
+        turn = int(board.pop()[0])
+
+        # display the board
         print(displayBoard(board))
-        turn ^= SWITCH_PLAYER
+        winner  = False
+        turnResult = [False ]
+
+        # continously take their turns
+        while not winner:
+            turnResult= takeTurn(turn, board)
+            board = turnResult[1]
+            print(displayBoard(board))
+            winner = turnResult[0]
+            if winner:
+                print("Player %s wins!" % turn)
+            if BLANK_SPACE not in [board[i][j] for i in range(len(board)) for j in range(len(board[0]))]:
+                print("There was a draw!")
+                winner = True
+            turn ^= SWITCH_PLAYER
+            
+        
+        play = input("Would you like to play again (y/n): ")
+        while not play in [YES,NO]:
+            play = input("Would you like to play again (y/n): ")
+        if play == YES:
+            board = newBoard()
 
     
 main()
